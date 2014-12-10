@@ -52,9 +52,6 @@ pre = checkName (== "pre")
 tr :: Axis
 tr = checkName (== "tr")
 
-dl :: Axis
-dl = checkName (== "dl")
-
 (^) :: Axis -> T.Text -> Axis
 a ^ name = a >=> if T.null name then check (null . hasAttribute "class") else attributeIs "class" name
 

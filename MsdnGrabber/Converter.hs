@@ -59,6 +59,7 @@ parseSectionContent title root | title == "See Also" = SeeAlsoSection $ getSeeAl
 
 parseContentBlock :: Cursor -> ContentBlock
 parseContentBlock elem | nameIs "p" elem = ParagraphBlock $ text elem
+                       | nameIs "pre" elem = VerbatimBlock $ text elem
                        | classIs "alert" elem = AlertBlock $ head $ elem $// p &| text
                        | classIs "caption" elem = CaptionBlock $ text elem
                        | classIs "tableSection" elem = TableBlock $ elem $// tr &| ($// p &| text)
@@ -66,4 +67,8 @@ parseContentBlock elem | nameIs "p" elem = ParagraphBlock $ text elem
                        | nameIs "ul" elem = ListBlock False $ elem $// p &| text
                        | classIs "codeSnippetContainer" elem = CodeBlock $ head $ elem $// pre &| text
                        | classIs "authored" elem = DescriptionListBlock $ mapTuple text <$> groupBy2 (elem $/ anyElement)
+                       | classIs "subHeading" elem = SubHeadingBlock $ text elem
+                       | classIs "subsection" elem = SubSectionBlock $ elem $/ anyElement &| parseContentBlock
+                       | classIs "seeAlsoNoToggleSection" elem = SubSectionBlock $ elem $/ anyElement &| parseContentBlock
+                       | nameIs "div" elem && classIs "" elem = SectionBlock $ parseSection elem
                        | otherwise = UnknownBlock

@@ -16,6 +16,7 @@ data MsdnTopicSection = ContentSection { contentTitle :: String
                       deriving (Show)
 
 data ContentBlock = ParagraphBlock { paragraphText :: String }
+                  | VerbatimBlock { verbatimText :: String }
                   | AlertBlock { alertText :: String }
                   | CaptionBlock { captionText :: String }
                   | TableBlock { tableContent :: [[String]] }
@@ -24,6 +25,9 @@ data ContentBlock = ParagraphBlock { paragraphText :: String }
                               }
                   | DescriptionListBlock { dlList :: [(String, String)] }
                   | CodeBlock { codeText :: String }
+                  | SubHeadingBlock { subHeadingText :: String }
+                  | SubSectionBlock { subSectionBlocks :: [ContentBlock] }
+                  | SectionBlock { sectionBlockSection :: MsdnTopicSection }
                   | UnknownBlock
                   deriving (Show)
 
@@ -54,6 +58,9 @@ instance ToJSON ContentBlock where
   toJSON (ParagraphBlock text) = object [ "type" .= ("paragraph" :: String)
                                         , "text" .= text
                                         ]
+  toJSON (VerbatimBlock text) = object [ "type" .= ("verbatim" :: String)
+                                       , "text" .= text
+                                       ]
   toJSON (CaptionBlock text) = object [ "type" .= ("caption" :: String)
                                       , "text" .= text
                                       ]
@@ -73,6 +80,15 @@ instance ToJSON ContentBlock where
   toJSON (CodeBlock code) = object [ "type" .= ("code" :: String)
                                    , "code" .= code
                                    ]
+  toJSON (SubHeadingBlock text) = object [ "type" .= ("subheading" :: String)
+                                         , "text" .= text
+                                         ]
+  toJSON (SubSectionBlock blocks) = object [ "type" .= ("subsection" :: String)
+                                           , "blocks" .= blocks
+                                           ]
+  toJSON (SectionBlock section) = object [ "type" .= ("section" :: String)
+                                         , "section" .= section
+                                         ]
   toJSON UnknownBlock = object [ "type" .= ("unknown" :: String) ]
 
 instance ToJSON SeeAlsoBlock where
