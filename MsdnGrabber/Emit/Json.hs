@@ -4,23 +4,13 @@ module MsdnGrabber.Emit.Json where
 
 import Data.Aeson
 
-import MsdnGrabber.MsdnTopic
+import MsdnGrabber.Topic
 
-instance ToJSON MsdnTopic where
-  toJSON MsdnTopic{..} = object [ "filename" .= topicFilename
-                                , "title" .= topicTitle
-                                , "sections" .= topicSections
-                                ]
-
-instance ToJSON MsdnTopicSection where
-  toJSON (ContentSection title blocks) = object [ "type" .= ("content" :: String)
-                                                , "title" .= title
-                                                , "blocks" .= blocks
-                                                ]
-  toJSON (SeeAlsoSection blocks) = object [ "type" .= ("see_also" :: String)
-                                          , "blocks" .= blocks
-                                          ]
-  toJSON UnknownSection = object [ "type" .= ("unknown" :: String) ]
+instance ToJSON Topic where
+  toJSON Topic{..} = object [ "filename" .= topicFilename
+                            , "title" .= topicTitle
+                            , "sections" .= topicSections
+                            ]
 
 instance ToJSON ContentBlock where
   toJSON (ParagraphBlock text) = object [ "type" .= ("paragraph" :: String)
@@ -54,17 +44,14 @@ instance ToJSON ContentBlock where
   toJSON (SubSectionBlock blocks) = object [ "type" .= ("subsection" :: String)
                                            , "blocks" .= blocks
                                            ]
-  toJSON (SectionBlock section) = object [ "type" .= ("section" :: String)
-                                         , "section" .= section
-                                         ]
+  toJSON (SectionBlock title blocks) = object [ "type" .= ("section" :: String)
+                                              , "title" .= title
+                                              , "blocks" .= blocks
+                                              ]
+  toJSON (SeeAlsoBlock blocks) = object [ "type" .= ("see_also" :: String)
+                                        , "blocks" .= blocks
+                                        ]
+  toJSON LinkBlock{..} = object [ "ref" .= linkRef
+                                , "text" .= linkText
+                                ]
   toJSON UnknownBlock = object [ "type" .= ("unknown" :: String) ]
-
-instance ToJSON SeeAlsoBlock where
-  toJSON SeeAlsoBlock{..} = object [ "heading" .= seeAlsoHeading
-                                   , "links" .= seeAlsoLinks
-                                   ]
-
-instance ToJSON MsdnLink where
-  toJSON MsdnLink{..} = object [ "ref" .= linkRef
-                               , "text" .= linkText
-                               ]

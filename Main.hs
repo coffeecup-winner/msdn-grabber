@@ -11,7 +11,7 @@ import Control.Monad
 
 import GHC.IO.Encoding (setLocaleEncoding, setFileSystemEncoding, setForeignEncoding, utf8)
 
-import MsdnGrabber.MsdnTopic
+import MsdnGrabber.Topic
 import MsdnGrabber.Grabber
 import MsdnGrabber.Parser
 import MsdnGrabber.Emit.Json()
