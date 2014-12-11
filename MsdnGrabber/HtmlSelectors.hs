@@ -9,7 +9,6 @@ import qualified Data.Text.Lazy as L
 import Text.XML
 import Text.XML.Cursor
 import Text.XML.Scraping
-import qualified Text.XML.Cursor.Generic as Generic
 
 nameIs :: T.Text -> Cursor -> Bool
 nameIs name cursor = go $ node cursor

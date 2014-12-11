@@ -1,7 +1,7 @@
 module MsdnGrabber.Utilities where
 
 groupBy :: (a -> Bool) -> [a] -> [(a, [a])]
-groupBy p xs = go $ dropWhile (not . p) xs
+groupBy p elems = go $ dropWhile (not . p) elems
     where go [] = []
           go (x:xs) = (x, group) : go rest where (group, rest) = break p xs
 

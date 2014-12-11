@@ -1,45 +1,34 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
-module MsdnGrabber.Converter where
+module MsdnGrabber.Parser where
 
 import Prelude hiding (div, span, (^))
 
-import Data.Aeson
-import Data.Aeson.Encode.Pretty
 import qualified Data.ByteString.Lazy.Char8 as BL
-import Data.Foldable
-import Data.Maybe
-import Data.Monoid
 import qualified Data.Text as T
-import qualified Data.Text.Lazy as L
-import qualified Data.Text.Lazy.IO as LI
-import qualified Data.Text.IO as TI
+import Data.Traversable
 import Data.Tree
 
 import Control.Applicative
 
 import Text.HTML.DOM (parseLBS)
-import Text.XML hiding (parseLBS)
 import Text.XML.Cursor
-import Text.XML.Scraping
 
 import MsdnGrabber.HtmlSelectors
 import MsdnGrabber.MsdnTopic
 import MsdnGrabber.Utilities
 import MsdnGrabber.WebPage
 
-processPages :: WebPage -> IO ()
-processPages page = do
-    let count = getSum $ foldMap (const $ Sum 1) page
-    forM_ (zip [1..] $ flatten page) $ \(i, p) -> do
+parsePages :: Tree WebPageLink -> IO (Tree MsdnTopic)
+parsePages pageTree = do
+    forM pageTree $ \p -> do
       let filename = wpFilename p
       root <- (fromDocument . parseLBS) <$> BL.readFile ("raw\\" ++ filename)
-      putStrLn $ "[" ++ show i ++ "\\" ++ show count ++ "] Processing " ++ filename
-      let topic = head $ root $// div^"topic" &| parseTopic
-      BL.writeFile ("data\\" ++ filename) $ encodePretty topic
+      return $ head $ root $// div^"topic" &| parseTopic filename
 
-parseTopic :: Cursor -> MsdnTopic
-parseTopic root = let
+parseTopic :: String -> Cursor ->  MsdnTopic
+parseTopic filename root = let
+    topicFilename = filename
     topicTitle = head $ root $/ h1^"title" &| text
     topicSections = introductionSection : miscSections
     introductionSection = head $ root $// div#"mainBody" &/ div^"introduction" &| parseSectionContent "Introduction"

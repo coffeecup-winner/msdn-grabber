@@ -4,12 +4,9 @@ module MsdnGrabber.Grabber where
 
 import Data.Aeson
 import qualified Data.ByteString.Lazy.Char8 as BL
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as L
-import qualified Data.Text.Lazy.IO as LI
-import qualified Data.Text.IO as TI
 import qualified Data.Set as Set
-import Data.Maybe
+import qualified Data.Text.Lazy.IO as LI
+import Data.Tree
 
 import Control.Applicative
 import Control.Monad
@@ -40,27 +37,28 @@ findSubpages c = if not . null . queryT [jq| #tocnav > div.toclevel2.current |] 
 generateRequest :: Cursor -> WebPageLink
 generateRequest = WebPageLink <$> href <*> text
 
+baseUrl :: String
 baseUrl = "http://msdn.microsoft.com"
 
-downloadPages :: String -> IO WebPage
+downloadPages :: String -> IO (Tree WebPageLink)
 downloadPages url = do
     let request = WebPageLink url ""
     pages <- grab request
     save pages
     return pages
 
-grab :: WebPageLink -> IO WebPage
+grab :: WebPageLink -> IO (Tree WebPageLink)
 grab req = withCursor (baseUrl ++ wpLink req) $ \root -> do
     pages <- go $ root $// findSubpages &| generateRequest
     LI.writeFile (("raw\\" ++) . Posix.takeFileName . wpLink $ req) (innerHtml root)
     return $ newPage (wpLink req) (wpName req) pages
     where
-        go :: [WebPageLink] -> IO [WebPage]
+        go :: [WebPageLink] -> IO [(Tree WebPageLink)]
         go rs = forM (removeDups rs) $ \r -> do
             putStrLn $ wpLink r ++ " " ++ wpName r
             grab r
 
-save :: WebPage -> IO ()
+save :: Tree WebPageLink -> IO ()
 save pages = BL.writeFile "raw\\index.json" $ encode pages
 
 removeDups :: Ord a => [a] -> [a]

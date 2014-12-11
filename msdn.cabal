@@ -17,6 +17,7 @@ cabal-version:       >= 1.10
 
 executable msdn
   main-is:             Main.hs
+  ghc-options:         -Wall
   -- other-modules:
   other-extensions:    OverloadedStrings, QuasiQuotes
   build-depends:       base          >= 4.7 && < 4.8,
