@@ -22,7 +22,7 @@ attr name cursor = go $ node cursor
     where go (NodeElement element) = fromMaybe "" . Map.lookup name . elementAttributes $ element
 
 text :: Cursor -> String
-text = L.unpack . innerText
+text = L.unpack . L.strip . innerText
 
 href :: Cursor -> String
 href = T.unpack . attr "href"
@@ -48,8 +48,20 @@ span = checkName (== "span")
 pre :: Axis
 pre = checkName (== "pre")
 
+table :: Axis
+table = checkName (== "table")
+
+tbody :: Axis
+tbody = checkName (== "tbody")
+
 tr :: Axis
 tr = checkName (== "tr")
+
+th :: Axis
+th = checkName (== "th")
+
+td :: Axis
+td = checkName (== "td")
 
 (^) :: Axis -> T.Text -> Axis
 a ^ name = a >=> if T.null name then check (null . hasAttribute "class") else attributeIs "class" name

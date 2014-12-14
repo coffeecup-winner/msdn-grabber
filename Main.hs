@@ -15,6 +15,7 @@ import MsdnGrabber.Topic
 import MsdnGrabber.Grabber
 import MsdnGrabber.Parser
 import MsdnGrabber.Emit.Json()
+import MsdnGrabber.Emit.Latex
 
 main :: IO ()
 main = do
@@ -24,6 +25,7 @@ main = do
     pages <- downloadPages "/en-us/library/bb162138.aspx"
     pages <- liftM (fromJust . decode) $ BL.readFile "raw\\index.json"
     topics <- parsePages pages
-    forM_ (flatten topics) $ \t -> do
-        let filename = topicFilename t
-        BL.writeFile ("data\\" ++ filename) $ encodePretty t
+    saveLatex "topic.tex" topics
+    --forM_ (flatten topics) $ \t -> do
+    --    let filename = topicFilename t
+    --    BL.writeFile ("data\\" ++ filename) $ encodePretty t
