@@ -48,9 +48,6 @@ instance ToJSON ContentBlock where
                                               , "title" .= title
                                               , "blocks" .= blocks
                                               ]
-  toJSON (SeeAlsoBlock blocks) = object [ "type" .= ("see_also" :: String)
-                                        , "blocks" .= blocks
-                                        ]
   toJSON LinkBlock{..} = object [ "ref" .= linkRef
                                 , "text" .= linkText
                                 ]

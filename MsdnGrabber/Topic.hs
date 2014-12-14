@@ -20,7 +20,6 @@ data ContentBlock = ParagraphBlock { paragraphText :: String }
                   | SectionBlock { sectionTitle :: String
                                  , sectionContent :: [ContentBlock]
                                  }
-                  | SeeAlsoBlock { seeAlsoBlocks :: [ContentBlock] }
                   | LinkBlock { linkRef :: String
                               , linkText :: String
                               }
