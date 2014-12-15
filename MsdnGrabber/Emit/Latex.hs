@@ -2,17 +2,16 @@
 module MsdnGrabber.Emit.Latex where
 
 import Control.Monad
+import qualified Data.List as List
 import Data.Matrix
 import qualified Data.Text as T
 import Data.Tree
 
 import Text.LaTeX
+import Text.LaTeX.Packages.Geometry
+import Text.LaTeX.Packages.Hyperref
 import Text.LaTeX.Packages.Inputenc
-
-import Text.LaTeX.Base.Syntax
-import Text.LaTeX.Base.Class
-import Text.LaTeX.Base.Render
-import Text.LaTeX.Base.Types
+import MsdnGrabber.Emit.HaTeX.Exts
 
 import MsdnGrabber.Topic
 
@@ -27,17 +26,17 @@ writeTopics topics = do
 preamble :: Monad m => String -> LaTeXT_ m
 preamble t = do
     documentclass [a4paper, openany] report
-    usepackage [] "hyperref"
+    importGeometry [GWidth $ Pt 450, GHeight $ Pt 700]
+    usepackage [] hyperref
     usepackage [utf8] inputenc
+    usepackage [] tabularY
     author "MsdnGrabber"
     title $ fromString t
 
 body :: Monad m => Tree Topic -> LaTeXT_ m
-body topics = do
-    maketitle
+body tree = do
     tableofcontents
-    forM_ (subForest topics) $ \t -> do
-        writeTopic 1 t
+    mapM_ (writeTopic 1) $ subForest tree
 
 writeTopic :: Monad m => Int -> Tree Topic -> LaTeXT_ m
 writeTopic n tree = do
@@ -65,9 +64,11 @@ writeSection (AlertBlock text) = do
 writeSection (CaptionBlock text) = do
     writeString text
 writeSection (TableBlock (headers:table)) = do
-    matrixTabular (fmap (textbf . fromString) headers) (fromLists texTable)
+    matrixTabulary (Pt 450) (tspec headers) (fmap (textbf . fromString) headers) (fromLists texTable)
     newline
     where
+        tspec :: [String] -> [TableSpecY]
+        tspec hs = List.replicate (length hs) CenterColumnY
         texTable :: [[Text]]
         texTable = fmap (fmap fromString) $ table
 writeSection (ListBlock ordered items) = do
@@ -77,7 +78,8 @@ writeSection (ListBlock ordered items) = do
             fromString i
 writeSection (DescriptionListBlock list) = do
     forM_ list $ \(term, desc) -> do
-        fromString term
+        textbf $ fromString term
+        newline
         writeString desc
 writeSection (CodeBlock text) = do
     verbatim $ fromString text
@@ -98,6 +100,3 @@ sectionFromLevel 2 = section
 sectionFromLevel 3 = subsection
 sectionFromLevel 4 = subsubsection
 sectionFromLevel _ = error "Unsupported level of nesting!"
-
-nameref :: LaTeXC l => Label -> l
-nameref l = fromLaTeX $ TeXComm "nameref" [ FixArg $ rendertex l ]
