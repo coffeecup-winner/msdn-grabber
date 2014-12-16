@@ -2,9 +2,22 @@
 {-# LANGUAGE OverloadedStrings #-}
 module MsdnGrabber.Emit.Json where
 
+import Control.Monad
 import Data.Aeson
+import Data.Aeson.Encode.Pretty
+import qualified Data.ByteString.Lazy.Char8 as BL
+import Data.Tree
+
+import System.Directory (createDirectoryIfMissing)
 
 import MsdnGrabber.Topic
+
+saveJson :: Tree Topic -> IO ()
+saveJson topics = do
+  createDirectoryIfMissing False "data"
+  forM_ (flatten topics) $ \t -> do
+    let filename = topicFilename t
+    BL.writeFile ("data\\" ++ filename) $ encodePretty t
 
 instance ToJSON Topic where
   toJSON Topic{..} = object [ "filename" .= topicFilename

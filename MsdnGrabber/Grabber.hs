@@ -9,7 +9,7 @@ import qualified Data.Text.Lazy.IO as LI
 import Data.Tree
 
 import Control.Applicative
-import Control.Monad
+import Control.Concurrent.ParallelIO.Local
 
 import Text.HTML.DOM (parseLBS)
 import Text.XML.Cursor
@@ -20,6 +20,7 @@ import Network (withSocketsDo)
 import Network.HTTP.Conduit
 
 import System.FilePath.Posix as Posix
+import System.Directory (createDirectoryIfMissing)
 
 import MsdnGrabber.WebPage
 import MsdnGrabber.HtmlSelectors
@@ -40,23 +41,23 @@ generateRequest = WebPageLink <$> href <*> text
 baseUrl :: String
 baseUrl = "http://msdn.microsoft.com"
 
-downloadPages :: String -> IO (Tree WebPageLink)
-downloadPages url = do
+downloadPages :: Int -> String -> IO (Tree WebPageLink)
+downloadPages threadsCount url = do
     let request = WebPageLink url ""
-    pages <- grab request
+    createDirectoryIfMissing False "raw"
+    pages <- withPool threadsCount $ \pool -> grab pool request
     save pages
     return pages
 
-grab :: WebPageLink -> IO (Tree WebPageLink)
-grab req = withCursor (baseUrl ++ wpLink req) $ \root -> do
+grab :: Pool -> WebPageLink -> IO (Tree WebPageLink)
+grab pool req = withCursor (baseUrl ++ wpLink req) $ \root -> do
+    putStrLn $ wpLink req ++ " " ++ wpName req
     pages <- go $ root $// findSubpages &| generateRequest
     LI.writeFile (("raw\\" ++) . Posix.takeFileName . wpLink $ req) (innerHtml root)
     return $ newPage (wpLink req) (wpName req) pages
     where
         go :: [WebPageLink] -> IO [(Tree WebPageLink)]
-        go rs = forM (removeDups rs) $ \r -> do
-            putStrLn $ wpLink r ++ " " ++ wpName r
-            grab r
+        go rs = parallel pool $ fmap (grab pool) (removeDups rs)
 
 save :: Tree WebPageLink -> IO ()
 save pages = BL.writeFile "raw\\index.json" $ encode pages
