@@ -66,7 +66,7 @@ main = do
 
 runGrabber :: Options -> IO ()
 runGrabber Options{..} = do
-    pages <- downloadPages threadsCount "/en-us/library/dd882498.aspx"
+    pages <- downloadPages threadsCount root
     topics <- parsePages pages
     case format of LaTeX -> saveLatex "topic.tex" topics
                    Json -> saveJson topics

@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 module MsdnGrabber.Grabber where
@@ -52,8 +53,8 @@ downloadPages threadsCount url = do
 grab :: Pool -> WebPageLink -> IO (Tree WebPageLink)
 grab pool req = withCursor (baseUrl ++ wpLink req) $ \root -> do
     putStrLn $ wpLink req ++ " " ++ wpName req
-    pages <- go $ root $// findSubpages &| generateRequest
     LI.writeFile (("raw\\" ++) . Posix.takeFileName . wpLink $ req) (innerHtml root)
+    !pages <- go $ root $// findSubpages &| generateRequest
     return $ newPage (wpLink req) (wpName req) pages
     where
         go :: [WebPageLink] -> IO [(Tree WebPageLink)]
