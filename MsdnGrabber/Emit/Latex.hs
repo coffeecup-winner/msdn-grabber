@@ -1,15 +1,19 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverlappingInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 module MsdnGrabber.Emit.Latex where
 
 import Control.Applicative
 import Control.Monad
 import qualified Data.List as List
 import Data.Matrix
+import qualified Data.Text as T
 import Data.Tree
 
 import Text.LaTeX
+import Text.LaTeX.Base.Class
 import Text.LaTeX.Packages.Geometry
-import Text.LaTeX.Packages.Hyperref
+import qualified Text.LaTeX.Packages.Hyperref as Hyperref
 import Text.LaTeX.Packages.Inputenc
 import MsdnGrabber.Emit.HaTeX.Exts
 
@@ -23,16 +27,16 @@ writeTopics topics = do
     preamble . topicTitle . rootLabel $ topics
     document $ body topics
 
-preamble :: Monad m => String -> LaTeXT_ m
+preamble :: Monad m => Text -> LaTeXT_ m
 preamble t = do
     documentclass [a4paper, openany] report
     importGeometry [GWidth $ Pt 450, GHeight $ Pt 700]
-    usepackage [] hyperref
+    usepackage [] Hyperref.hyperref
     usepackage [utf8] inputenc
     usepackage [] tabularY
     raw "\\DeclareUnicodeCharacter{00A0}{~}"
     author "MsdnGrabber"
-    title $ fromString t
+    title $ texy t
 
 body :: Monad m => Tree Topic -> LaTeXT_ m
 body tree = do
@@ -42,10 +46,17 @@ body tree = do
 writeTopic :: Monad m => Int -> Tree Topic -> LaTeXT_ m
 writeTopic n tree = do
     let topic = rootLabel tree
-    sectionFromLevel n (fromString . topicTitle $ topic)
-    label (fromString . topicFilename $ topic)
-    mapM_ writeSection (flattenSections . topicSections $ topic)
+    sectionFromLevel n (texy . topicTitle $ topic)
+    label (texy . topicFilename $ topic)
+    mapM_ texy (flattenSections . topicSections $ topic)
     mapM_ (writeTopic (n + 1)) $ subForest tree
+
+sectionFromLevel :: LaTeXC l => Int -> l -> l
+sectionFromLevel 1 = chapter
+sectionFromLevel 2 = section
+sectionFromLevel 3 = subsection
+sectionFromLevel 4 = subsubsection
+sectionFromLevel _ = error "Unsupported level of nesting!"
 
 flattenSections :: [ContentBlock] -> [ContentBlock]
 flattenSections [] = []
@@ -53,53 +64,45 @@ flattenSections (SubSectionBlock blocks : rest) = flattenSections blocks ++ flat
 flattenSections (SectionBlock title blocks : rest) = SubHeadingBlock title : flattenSections blocks ++ flattenSections rest
 flattenSections (block : rest) = block : flattenSections rest
 
-writeSection :: Monad m => ContentBlock -> LaTeXT_ m
-writeSection (ParagraphBlock textBlocks) = writeTextBlocks textBlocks
-writeSection (VerbatimBlock text) = verbatim $ fromString text
-writeSection (AlertBlock textBlocks) = do
-    textbf "NOTE"
-    newline
-    writeTextBlocks textBlocks
-writeSection (CaptionBlock text) = writeString text
-writeSection (TableBlock (headers:table)) = do
-    matrixTabulary (Pt 450) (tspec headers) (fmap (textbf . fromString) headers) (fromLists texTable)
-    newline
-    where
-        tspec :: [String] -> [TableSpecY]
-        tspec hs = List.replicate (length hs) CenterColumnY
-        texTable :: [[Text]]
-        texTable = fmap fromString <$> table
-writeSection (ListBlock ordered items) =
-    (if ordered then enumerate else itemize) $
-        forM_ items $ \textBlocks -> do
-            item Nothing
-            writeTextBlocks textBlocks
-writeSection (DescriptionListBlock list) =
-    forM_ list $ \(term, desc) -> do
-        writeTextBlocks term
-        forM_ desc writeSection
-writeSection (CodeBlock text) = verbatim $ fromString text
-writeSection (SubHeadingBlock text) = textbf (large $ fromString text) <> newline
-writeSection (LinkBlock link _) = nameref (fromString link) <> newline
-writeSection UnknownBlock = error "Unknown block!"
+instance Texy l => Texy [l] where
+    texy bs = mconcat (texy <$> bs)
 
-writeTextBlocks :: Monad m => [TextBlock] -> LaTeXT_ m
-writeTextBlocks blocks = if null blocks then mempty else mconcat (writeTextBlock <$> blocks) <> newline
+instance (Texy a, Texy b) => Texy (a, b) where
+    texy (a, b) = texy a <> texy b
 
-writeTextBlock :: Monad m => TextBlock -> LaTeXT_ m
-writeTextBlock (PlainText t) = fromString t
-writeTextBlock (BoldText t) = textbf $ fromString t
-writeTextBlock (ItalicText t) = textit $ fromString t
-writeTextBlock (MonospaceText t) = texttt $ fromString t
-writeTextBlock (RefText t link) = if head link == '#' then fromString t else nameref $ fromString link
-writeTextBlock (UnknownText _ _) = error "Unknown text!"
+instance Texy ContentBlock where
+    texy (ParagraphBlock blocks) = texy blocks
+    texy (VerbatimBlock text) = verbatim text
+    texy (AlertBlock blocks) = textbf "NOTE" <> newline <> texy blocks
+    texy (CaptionBlock text) = if T.null text then mempty else texy text <> newline
+    texy (TableBlock (headers:table)) = matrixTabulary (Pt 450) (tspec headers) (fmap (textbf . texy) headers) (fromLists table) <> newline
+        where
+            tspec :: [Text] -> [TableSpecY]
+            tspec hs = List.replicate (length hs) CenterColumnY
+    texy (ListBlock ordered items) =
+        (if ordered then enumerate else itemize) $ texy items
+    texy (DescriptionListBlock list) = texy list
+    texy (CodeBlock text) = verbatim text
+    texy (SubHeadingBlock text) = textbf (large $ texy text) <> newline
+    texy (LinkBlock link _) = nameref link <> newline
+    texy UnknownBlock = error "Unknown block!"
 
-writeString :: Monad m => String -> LaTeXT_ m
-writeString s = if null s then mempty else fromString s <> newline
+instance Texy DescriptionListItem where
+    texy (DescriptionListItem term desc) = texy term <> texy desc
 
-sectionFromLevel :: Monad m => Int -> LaTeXT_ m -> LaTeXT_ m
-sectionFromLevel 1 = chapter
-sectionFromLevel 2 = section
-sectionFromLevel 3 = subsection
-sectionFromLevel 4 = subsubsection
-sectionFromLevel _ = error "Unsupported level of nesting!"
+instance Texy ListItem where
+    texy (ListItem par) = item Nothing <> texy par <> newline
+
+instance Texy Paragraph where
+    texy par = if null par then mempty else mconcat (texy <$> par) <> newline
+
+instance Texy TextBlock where
+    texy (PlainText t) = texy t
+    texy (BoldText t) = textbf $ texy t
+    texy (ItalicText t) = textit $ texy t
+    texy (MonospaceText t) = texttt $ texy t
+    texy (RefText t link) = if T.head link == '#' then texy t else nameref link
+    texy (UnknownText _ _) = error "Unknown text!"
+
+nameref :: (LaTeXC l) => T.Text -> l
+nameref = Hyperref.nameref . fromString . T.unpack

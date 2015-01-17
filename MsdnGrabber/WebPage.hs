@@ -3,29 +3,30 @@
 module MsdnGrabber.WebPage where
 
 import Data.Aeson
+import Data.Text
 import Data.Tree
 
 import Control.Applicative
 
-import System.FilePath.Posix as Posix
+import MsdnGrabber.Utilities
 
-data WebPageLink = WebPageLink { wpLink :: String
-                               , wpName :: String
+data WebPageLink = WebPageLink { wpLink :: Text
+                               , wpName :: Text
                                } deriving (Eq, Show)
 
-wpFilename :: WebPageLink -> FilePath
-wpFilename = Posix.takeFileName . wpLink
+wpFilename :: WebPageLink -> Text
+wpFilename = takeFileName . wpLink
 
 instance Ord WebPageLink where
     compare x y = compare (wpName x) (wpName y)
 
-newPage :: String -> String -> Forest WebPageLink -> Tree WebPageLink
+newPage :: Text -> Text -> Forest WebPageLink -> Tree WebPageLink
 newPage l n = Node (WebPageLink l n)
 
-pageLink :: Tree WebPageLink -> String
+pageLink :: Tree WebPageLink -> Text
 pageLink = wpLink . rootLabel
 
-pageName :: Tree WebPageLink -> String
+pageName :: Tree WebPageLink -> Text
 pageName = wpName . rootLabel
 
 instance ToJSON (Tree WebPageLink) where

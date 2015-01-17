@@ -6,6 +6,7 @@ import Control.Monad
 import Data.Aeson
 import Data.Aeson.Encode.Pretty
 import qualified Data.ByteString.Lazy.Char8 as BL
+import qualified Data.Text as T
 import Data.Tree
 
 import System.Directory (createDirectoryIfMissing)
@@ -17,7 +18,7 @@ saveJson topics = do
   createDirectoryIfMissing False "data"
   forM_ (flatten topics) $ \t -> do
     let filename = topicFilename t
-    BL.writeFile ("data\\" ++ filename) $ encodePretty t
+    BL.writeFile ("data\\" ++ T.unpack filename) $ encodePretty t
 
 instance ToJSON Topic where
   toJSON Topic{..} = object [ "filename" .= topicFilename
@@ -65,6 +66,14 @@ instance ToJSON ContentBlock where
                                 , "text" .= linkText
                                 ]
   toJSON UnknownBlock = object [ "type" .= ("unknown" :: String) ]
+
+instance ToJSON DescriptionListItem where
+  toJSON (DescriptionListItem term desc) = object [ "term" .= term
+                                        , "desc" .= desc
+                                        ]
+
+instance ToJSON ListItem where
+  toJSON (ListItem par) = toJSON par
 
 instance ToJSON TextBlock where
   toJSON (PlainText text) = object [ "plain" .= text  ]

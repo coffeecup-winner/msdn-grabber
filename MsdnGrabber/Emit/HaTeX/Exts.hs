@@ -11,9 +11,6 @@ import Text.LaTeX.Base.Syntax
 import Text.LaTeX.Base.Texy
 import Text.LaTeX.Base.Types
 
-nameref :: LaTeXC l => Label -> l
-nameref l = fromLaTeX $ TeXComm "nameref" [ FixArg $ rendertex l ]
-
 tabularX :: PackageName
 tabularX = "tabularx"
 

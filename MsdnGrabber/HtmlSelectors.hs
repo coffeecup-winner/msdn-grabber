@@ -21,11 +21,11 @@ attr :: Name -> Cursor -> T.Text
 attr name cursor = go $ node cursor
     where go (NodeElement element) = fromMaybe "" . Map.lookup name . elementAttributes $ element
 
-text :: Cursor -> String
-text = L.unpack . L.strip . innerText
+text :: Cursor -> T.Text
+text = L.toStrict . L.strip . innerText
 
-href :: Cursor -> String
-href = T.unpack . attr "href"
+href :: Cursor -> T.Text
+href = attr "href"
 
 a :: Axis
 a = checkName (== "a")

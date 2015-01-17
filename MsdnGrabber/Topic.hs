@@ -1,39 +1,49 @@
 module MsdnGrabber.Topic where
 
-data Topic = Topic { topicFilename :: String
-                   , topicTitle :: String
+import Data.Text
+
+data Topic = Topic { topicFilename :: Text
+                   , topicTitle :: Text
                    , topicSections :: [ContentBlock]
                    } deriving (Show)
 
-data ContentBlock = ParagraphBlock { paragraphText :: [TextBlock] }
-                  | VerbatimBlock { verbatimText :: String }
-                  | AlertBlock { alertText :: [TextBlock] }
-                  | CaptionBlock { captionText :: String }
-                  | TableBlock { tableContent :: [[String]] }
+data ContentBlock = ParagraphBlock { paragraphText :: Paragraph }
+                  | VerbatimBlock { verbatimText :: Text }
+                  | AlertBlock { alertText :: Paragraph }
+                  | CaptionBlock { captionText :: Text }
+                  | TableBlock { tableContent :: [[Text]] }
                   | ListBlock { listOrdered :: Bool
-                              , listItems :: [[TextBlock]]
+                              , listItems :: [ListItem]
                               }
-                  | DescriptionListBlock { dlList :: [([TextBlock], [ContentBlock])] }
-                  | CodeBlock { codeText :: String }
-                  | SubHeadingBlock { subHeadingText :: String }
+                  | DescriptionListBlock { dlList :: [DescriptionListItem] }
+                  | CodeBlock { codeText :: Text }
+                  | SubHeadingBlock { subHeadingText :: Text }
                   | SubSectionBlock { subSectionBlocks :: [ContentBlock] }
-                  | SectionBlock { sectionTitle :: String
+                  | SectionBlock { sectionTitle :: Text
                                  , sectionContent :: [ContentBlock]
                                  }
-                  | LinkBlock { linkRef :: String
-                              , linkText :: String
+                  | LinkBlock { linkRef :: Text
+                              , linkText :: Text
                               }
                   | UnknownBlock
                   deriving (Show)
 
-data TextBlock = PlainText { plainText :: String }
-               | BoldText { boldText :: String }
-               | ItalicText { italicText :: String }
-               | MonospaceText { monospaceText :: String }
-               | RefText { refText :: String
-                         , refLocation :: String
+data DescriptionListItem = DescriptionListItem Paragraph [ContentBlock]
+                         deriving (Show)
+
+data ListItem = ListItem Paragraph
+              deriving (Show)
+
+type Paragraph = [TextBlock]
+
+data TextBlock = PlainText { plainText :: Text }
+               | BoldText { boldText :: Text }
+               | ItalicText { italicText :: Text }
+               | MonospaceText { monospaceText :: Text }
+               | RefText { refText :: Text
+                         , refLocation :: Text
                          }
-               | UnknownText { unknownText :: String
-                             , unknownClass :: String
+               | UnknownText { unknownText :: Text
+                             , unknownClass :: Text
                              }
                deriving (Show)

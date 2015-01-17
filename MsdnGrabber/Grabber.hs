@@ -5,6 +5,9 @@ module MsdnGrabber.Grabber where
 
 import Data.Aeson
 import qualified Data.ByteString.Lazy.Char8 as BL
+import Data.Monoid
+import qualified Data.Text as T
+import qualified Data.Text.IO as TI
 import qualified Data.Text.Lazy.IO as LI
 import Data.Tree
 
@@ -25,9 +28,9 @@ import MsdnGrabber.HtmlSelectors
 import MsdnGrabber.Utilities
 import MsdnGrabber.WebPage
 
-withCursor :: String -> (Cursor -> IO a) -> IO a
+withCursor :: T.Text -> (Cursor -> IO a) -> IO a
 withCursor url f = withSocketsDo $ do
-    root <- (fromDocument . parseLBS) <$> simpleHttp url
+    root <- (fromDocument . parseLBS) <$> simpleHttp (T.unpack url)
     f root
 
 findSubpages :: Cursor -> [Cursor]
@@ -38,21 +41,21 @@ findSubpages c = if not . null . queryT [jq| #tocnav > div.toclevel2.current |] 
 generateRequest :: Cursor -> WebPageLink
 generateRequest = WebPageLink <$> href <*> text
 
-baseUrl :: String
+baseUrl :: T.Text
 baseUrl = "http://msdn.microsoft.com"
 
 downloadPages :: Int -> String -> IO (Tree WebPageLink)
 downloadPages threadsCount url = do
-    let request = WebPageLink url ""
+    let request = WebPageLink (T.pack url) ""
     createDirectoryIfMissing False "raw"
     pages <- withPool threadsCount $ \pool -> grab pool request
     save pages
     return pages
 
 grab :: Pool -> WebPageLink -> IO (Tree WebPageLink)
-grab pool req = withCursor (baseUrl ++ wpLink req) $ \root -> do
-    putStrLn $ wpLink req ++ " " ++ wpName req
-    LI.writeFile (("raw\\" ++) . wpFilename $ req) (innerHtml root)
+grab pool req = withCursor (baseUrl <> wpLink req) $ \root -> do
+    TI.putStrLn $ wpLink req <> " " <> wpName req
+    LI.writeFile (T.unpack $ "raw\\" <> wpFilename req) (innerHtml root)
     !pages <- go $ root $// findSubpages &| generateRequest
     return $ newPage (wpLink req) (wpName req) pages
     where
