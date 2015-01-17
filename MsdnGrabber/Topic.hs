@@ -5,15 +5,15 @@ data Topic = Topic { topicFilename :: String
                    , topicSections :: [ContentBlock]
                    } deriving (Show)
 
-data ContentBlock = ParagraphBlock { paragraphText :: String }
+data ContentBlock = ParagraphBlock { paragraphText :: [TextBlock] }
                   | VerbatimBlock { verbatimText :: String }
-                  | AlertBlock { alertText :: String }
+                  | AlertBlock { alertText :: [TextBlock] }
                   | CaptionBlock { captionText :: String }
                   | TableBlock { tableContent :: [[String]] }
                   | ListBlock { listOrdered :: Bool
-                              , listItems :: [String]
+                              , listItems :: [[TextBlock]]
                               }
-                  | DescriptionListBlock { dlList :: [(String, String)] }
+                  | DescriptionListBlock { dlList :: [([TextBlock], [ContentBlock])] }
                   | CodeBlock { codeText :: String }
                   | SubHeadingBlock { subHeadingText :: String }
                   | SubSectionBlock { subSectionBlocks :: [ContentBlock] }
@@ -25,3 +25,15 @@ data ContentBlock = ParagraphBlock { paragraphText :: String }
                               }
                   | UnknownBlock
                   deriving (Show)
+
+data TextBlock = PlainText { plainText :: String }
+               | BoldText { boldText :: String }
+               | ItalicText { italicText :: String }
+               | MonospaceText { monospaceText :: String }
+               | RefText { refText :: String
+                         , refLocation :: String
+                         }
+               | UnknownText { unknownText :: String
+                             , unknownClass :: String
+                             }
+               deriving (Show)

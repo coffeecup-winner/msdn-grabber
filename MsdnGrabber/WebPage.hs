@@ -20,7 +20,7 @@ instance Ord WebPageLink where
     compare x y = compare (wpName x) (wpName y)
 
 newPage :: String -> String -> Forest WebPageLink -> Tree WebPageLink
-newPage l n p = Node (WebPageLink l n) p
+newPage l n = Node (WebPageLink l n)
 
 pageLink :: Tree WebPageLink -> String
 pageLink = wpLink . rootLabel

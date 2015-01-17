@@ -1,10 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 module MsdnGrabber.Emit.Latex where
 
+import Control.Applicative
 import Control.Monad
 import qualified Data.List as List
 import Data.Matrix
-import qualified Data.Text as T
 import Data.Tree
 
 import Text.LaTeX
@@ -30,6 +30,7 @@ preamble t = do
     usepackage [] hyperref
     usepackage [utf8] inputenc
     usepackage [] tabularY
+    raw "\\DeclareUnicodeCharacter{00A0}{~}"
     author "MsdnGrabber"
     title $ fromString t
 
@@ -53,16 +54,13 @@ flattenSections (SectionBlock title blocks : rest) = SubHeadingBlock title : fla
 flattenSections (block : rest) = block : flattenSections rest
 
 writeSection :: Monad m => ContentBlock -> LaTeXT_ m
-writeSection (ParagraphBlock text) = do
-    writeString text
-writeSection (VerbatimBlock text) = do
-    verbatim $ fromString text
-writeSection (AlertBlock text) = do
+writeSection (ParagraphBlock textBlocks) = writeTextBlocks textBlocks
+writeSection (VerbatimBlock text) = verbatim $ fromString text
+writeSection (AlertBlock textBlocks) = do
     textbf "NOTE"
     newline
-    writeString text
-writeSection (CaptionBlock text) = do
-    writeString text
+    writeTextBlocks textBlocks
+writeSection (CaptionBlock text) = writeString text
 writeSection (TableBlock (headers:table)) = do
     matrixTabulary (Pt 450) (tspec headers) (fmap (textbf . fromString) headers) (fromLists texTable)
     newline
@@ -70,31 +68,36 @@ writeSection (TableBlock (headers:table)) = do
         tspec :: [String] -> [TableSpecY]
         tspec hs = List.replicate (length hs) CenterColumnY
         texTable :: [[Text]]
-        texTable = fmap (fmap fromString) $ table
-writeSection (ListBlock ordered items) = do
-    (if ordered then enumerate else itemize) $ do
-        forM_ items $ \i -> do
+        texTable = fmap fromString <$> table
+writeSection (ListBlock ordered items) =
+    (if ordered then enumerate else itemize) $
+        forM_ items $ \textBlocks -> do
             item Nothing
-            fromString i
-writeSection (DescriptionListBlock list) = do
+            writeTextBlocks textBlocks
+writeSection (DescriptionListBlock list) =
     forM_ list $ \(term, desc) -> do
-        textbf $ fromString term
-        newline
-        writeString desc
-writeSection (CodeBlock text) = do
-    verbatim $ fromString text
-writeSection (SubHeadingBlock text) = do
-    textbf (large $ fromString text)
-    newline
-writeSection (LinkBlock link text) = do
-    nameref (fromString link)
-    newline
+        writeTextBlocks term
+        forM_ desc writeSection
+writeSection (CodeBlock text) = verbatim $ fromString text
+writeSection (SubHeadingBlock text) = textbf (large $ fromString text) <> newline
+writeSection (LinkBlock link _) = nameref (fromString link) <> newline
 writeSection UnknownBlock = error "Unknown block!"
+
+writeTextBlocks :: Monad m => [TextBlock] -> LaTeXT_ m
+writeTextBlocks blocks = if null blocks then mempty else mconcat (writeTextBlock <$> blocks) <> newline
+
+writeTextBlock :: Monad m => TextBlock -> LaTeXT_ m
+writeTextBlock (PlainText t) = fromString t
+writeTextBlock (BoldText t) = textbf $ fromString t
+writeTextBlock (ItalicText t) = textit $ fromString t
+writeTextBlock (MonospaceText t) = texttt $ fromString t
+writeTextBlock (RefText t link) = if head link == '#' then fromString t else nameref $ fromString link
+writeTextBlock (UnknownText _ _) = error "Unknown text!"
 
 writeString :: Monad m => String -> LaTeXT_ m
 writeString s = if null s then mempty else fromString s <> newline
 
-sectionFromLevel :: Monad m => Int -> (LaTeXT_ m -> LaTeXT_ m)
+sectionFromLevel :: Monad m => Int -> LaTeXT_ m -> LaTeXT_ m
 sectionFromLevel 1 = chapter
 sectionFromLevel 2 = section
 sectionFromLevel 3 = subsection

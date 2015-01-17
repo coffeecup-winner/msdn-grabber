@@ -23,7 +23,7 @@ instance Read Format where
                  ]
         where tryParse [] = []
               tryParse ((attempt, result):xs) =
-                  if (take (length attempt) v) == attempt
+                  if take (length attempt) v == attempt
                      then [(result, drop (length attempt) v)]
                      else tryParse xs
 

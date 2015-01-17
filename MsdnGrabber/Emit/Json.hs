@@ -65,3 +65,15 @@ instance ToJSON ContentBlock where
                                 , "text" .= linkText
                                 ]
   toJSON UnknownBlock = object [ "type" .= ("unknown" :: String) ]
+
+instance ToJSON TextBlock where
+  toJSON (PlainText text) = object [ "plain" .= text  ]
+  toJSON (BoldText text) = object [ "bold" .= text  ]
+  toJSON (ItalicText text) = object [ "italic" .= text  ]
+  toJSON (MonospaceText text) = object [ "monospace" .= text ]
+  toJSON (RefText text ref) = object [ "text" .= text
+                                     , "ref" .= ref
+                                     ]
+  toJSON (UnknownText text cls) = object [ "text" .= text
+                                         , "class" .= cls
+                                         ]

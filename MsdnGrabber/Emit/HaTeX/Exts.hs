@@ -35,7 +35,7 @@ matrixTabularx :: (LaTeXC l, Texy a)
                -> Matrix a -- ^ Matrix of data
                -> l -- ^ Data organized in a tabular environment
 matrixTabularx w tspec ts m =
-  let spec = VerticalLineX : (List.intersperse VerticalLineX $ tspec) ++ [VerticalLineX]
+  let spec = VerticalLineX : List.intersperse VerticalLineX tspec ++ [VerticalLineX]
   in  tabularx Nothing w spec $ mconcat
         [ hline
         , foldl1 (&) ts
@@ -95,7 +95,7 @@ matrixTabulary :: (LaTeXC l, Texy a)
                -> Matrix a -- ^ Matrix of data
                -> l -- ^ Data organized in a tabular environment
 matrixTabulary w tspec ts m =
-  let spec = VerticalLineY : (List.intersperse VerticalLineY $ tspec) ++ [VerticalLineY]
+  let spec = VerticalLineY : List.intersperse VerticalLineY tspec ++ [VerticalLineY]
   in  tabulary Nothing w spec $ mconcat
         [ hline
         , foldl1 (&) ts
