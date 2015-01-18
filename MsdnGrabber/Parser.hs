@@ -35,35 +35,40 @@ parseTopic filename root = let
     topicFilename = takeBaseName filename
     topicTitle = head $ root $/ h1^"title" &| text
     topicSections = introductionSection : miscSections
-    introductionSection = head $ root $// div#"mainBody" &/ div^"introduction" &| parseSectionContent "Introduction"
-    miscSections = root $// div#"mainBody" &/ div^"" &| parseSection
+    introductionSection = head $ root $// div#"mainBody" &/ div^"introduction" &| parseSection Nothing
+    miscSections = root $// div#"mainBody" &/ div^"" &| parseNamedSection
     in Topic{..}
 
-parseSection :: Cursor -> ContentBlock
-parseSection root = let
+parseNamedSection :: Cursor -> Section
+parseNamedSection root = let
     title = head $ root $// span^"LW_CollapsibleArea_Title" &| text
-    in head $ root $// div^"sectionblock" &| parseSectionContent title
+    in head $ root $// div^"sectionblock" &| parseSection (Just title)
 
-parseSectionContent :: T.Text -> Cursor -> ContentBlock
-parseSectionContent title root = SectionBlock title $ root $/ anyElement >=> check (not . ("Toggle" `T.isInfixOf`) . attr "id") &| parseContentBlock
+parseSection :: Maybe T.Text -> Cursor -> Section
+parseSection title root = if any isSubSection elems
+  then Section title . SubSections $ condMap isSubSection (\es -> Section Nothing . Content . join $ parseContent <$> es) parseNamedSection elems
+  else Section title . Content . join $ parseContent <$> elems
+  where
+    elems = root $/ anyElement >=> check (not . ("Toggle" `T.isInfixOf`) . attr "id")
+    isSubSection e = nameIs "div" e && classIs "" e
 
-parseContentBlock :: Cursor -> ContentBlock
-parseContentBlock elem | nameIs "p" elem = ParagraphBlock $ parseParagraph elem
-                       | nameIs "span" elem = ParagraphBlock $ parseParagraph elem
-                       | nameIs "pre" elem = VerbatimBlock $ text elem
-                       | classIs "alert" elem = AlertBlock $ head $ elem $// p &| parseParagraph
-                       | classIs "caption" elem = CaptionBlock $ text elem
-                       | classIs "tableSection" elem = TableBlock $ elem $/ table &/ tr &| ($/ anyElement &| text)
-                       | nameIs "ol" elem = ListBlock True $ elem $// p &| ListItem . parseParagraph
-                       | nameIs "ul" elem = ListBlock False $ elem $// p &| ListItem . parseParagraph
-                       | classIs "codeSnippetContainer" elem = CodeBlock $ head $ elem $// pre &| text
-                       | classIs "authored" elem = DescriptionListBlock $ (\(t, d) -> DescriptionListItem (parseParagraph t) (d $/ anyElement &| parseContentBlock)) <$> groupBy2 (elem $/ anyElement)
-                       | classIs "subHeading" elem = SubHeadingBlock $ text elem
-                       | classIs "subsection" elem = SubSectionBlock $ elem $/ anyElement &| parseContentBlock
-                       | classIs "seeAlsoNoToggleSection" elem = SubSectionBlock $ elem $/ anyElement &| parseContentBlock
-                       | classIs "seeAlsoStyle" elem = LinkBlock <$> takeBaseName . href <*> text $ head $ elem $// a
-                       | nameIs "div" elem && classIs "" elem = parseSection elem
-                       | otherwise = UnknownBlock
+parseContent :: Cursor -> [ContentBlock]
+parseContent elem | nameIs "p" elem = return $ ParagraphBlock $ parseParagraph elem
+                  | nameIs "span" elem = return $ ParagraphBlock $ parseParagraph elem
+                  | nameIs "pre" elem = return $ VerbatimBlock $ text elem
+                  | classIs "alert" elem = return $ AlertBlock $ head $ elem $// p &| parseParagraph
+                  | classIs "caption" elem = return $ CaptionBlock $ text elem
+                  | classIs "tableSection" elem = return $ TableBlock $ elem $/ table &/ tr &| ($/ anyElement &| text)
+                  | nameIs "ol" elem = return $ ListBlock True $ elem $// p &| ListItem . parseParagraph
+                  | nameIs "ul" elem = return $ ListBlock False $ elem $// p &| ListItem . parseParagraph
+                  | classIs "codeSnippetContainer" elem = return $ CodeBlock $ head $ elem $// pre &| text
+                  | classIs "authored" elem = return $ DescriptionListBlock $ (\(t, d) -> DescriptionListItem (parseParagraph t) (d $/ anyElement &| head . parseContent)) <$> groupBy2 (elem $/ anyElement)
+                  | classIs "subHeading" elem = return $ SubHeadingBlock $ text elem
+                  | classIs "subsection" elem = join $ elem $/ anyElement &| parseContent
+                  | classIs "seeAlsoNoToggleSection" elem = join $ elem $/ anyElement &| parseContent
+                  | classIs "seeAlsoStyle" elem = return $ LinkBlock <$> takeBaseName . href <*> text $ head $ elem $// a
+                  | nameIs "div" elem && classIs "" elem = []
+                  | otherwise = return $ UnknownBlock
 
 parseParagraph :: Cursor -> Paragraph
 parseParagraph = go . node where

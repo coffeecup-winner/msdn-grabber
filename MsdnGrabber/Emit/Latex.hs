@@ -48,7 +48,7 @@ writeTopic n tree = do
     let topic = rootLabel tree
     sectionFromLevel n (texy . topicTitle $ topic)
     label (texy . topicFilename $ topic)
-    mapM_ texy (flattenSections . topicSections $ topic)
+    mapM_ texy (topicSections topic)
     mapM_ (writeTopic (n + 1)) $ subForest tree
 
 sectionFromLevel :: LaTeXC l => Int -> l -> l
@@ -58,17 +58,19 @@ sectionFromLevel 3 = subsection
 sectionFromLevel 4 = subsubsection
 sectionFromLevel _ = error "Unsupported level of nesting!"
 
-flattenSections :: [ContentBlock] -> [ContentBlock]
-flattenSections [] = []
-flattenSections (SubSectionBlock blocks : rest) = flattenSections blocks ++ flattenSections rest
-flattenSections (SectionBlock title blocks : rest) = SubHeadingBlock title : flattenSections blocks ++ flattenSections rest
-flattenSections (block : rest) = block : flattenSections rest
-
 instance Texy l => Texy [l] where
     texy bs = mconcat (texy <$> bs)
 
 instance (Texy a, Texy b) => Texy (a, b) where
     texy (a, b) = texy a <> texy b
+
+instance Texy Section where
+    texy (Section Nothing s) = texy s
+    texy (Section (Just text) s) = textbf (large $ texy text) <> newline <> texy s
+
+instance Texy SectionBlock where
+    texy (Content c) = texy c
+    texy (SubSections s) = texy s
 
 instance Texy ContentBlock where
     texy (ParagraphBlock blocks) = texy blocks
@@ -83,7 +85,7 @@ instance Texy ContentBlock where
         (if ordered then enumerate else itemize) $ texy items
     texy (DescriptionListBlock list) = texy list
     texy (CodeBlock text) = verbatim text
-    texy (SubHeadingBlock text) = textbf (large $ texy text) <> newline
+    texy (SubHeadingBlock text) = textbf (texy text) <> newline
     texy (LinkBlock link _) = nameref link <> newline
     texy UnknownBlock = error "Unknown block!"
 

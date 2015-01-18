@@ -26,6 +26,16 @@ instance ToJSON Topic where
                             , "sections" .= topicSections
                             ]
 
+instance ToJSON Section where
+  toJSON (Section text s) = object [ "type" .= ("section" :: String)
+                                   , "heading" .= text
+                                   , "data" .= s
+                                   ]
+
+instance ToJSON SectionBlock where
+  toJSON (Content c) = object [ "content" .= c ]
+  toJSON (SubSections s) = object [ "subsections" .= s ]
+
 instance ToJSON ContentBlock where
   toJSON (ParagraphBlock text) = object [ "type" .= ("paragraph" :: String)
                                         , "text" .= text
@@ -55,13 +65,6 @@ instance ToJSON ContentBlock where
   toJSON (SubHeadingBlock text) = object [ "type" .= ("subheading" :: String)
                                          , "text" .= text
                                          ]
-  toJSON (SubSectionBlock blocks) = object [ "type" .= ("subsection" :: String)
-                                           , "blocks" .= blocks
-                                           ]
-  toJSON (SectionBlock title blocks) = object [ "type" .= ("section" :: String)
-                                              , "title" .= title
-                                              , "blocks" .= blocks
-                                              ]
   toJSON LinkBlock{..} = object [ "ref" .= linkRef
                                 , "text" .= linkText
                                 ]
@@ -69,8 +72,8 @@ instance ToJSON ContentBlock where
 
 instance ToJSON DescriptionListItem where
   toJSON (DescriptionListItem term desc) = object [ "term" .= term
-                                        , "desc" .= desc
-                                        ]
+                                         , "desc" .= desc
+                                         ]
 
 instance ToJSON ListItem where
   toJSON (ListItem par) = toJSON par

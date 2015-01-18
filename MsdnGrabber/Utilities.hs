@@ -15,6 +15,11 @@ groupBy2 [] = []
 groupBy2 (x:y:xs) = (x, y) : groupBy2 xs
 groupBy2 [_] = error "Odd number of elements!"
 
+condMap :: (a -> Bool) -> ([a] -> b) -> (a -> b) -> [a] -> [b]
+condMap p f g [] = []
+condMap p f g (x:xs) = if p x then g x : condMap p f g xs else f as : condMap p f g bs
+    where (as, bs) = break p (x:xs)
+
 mapTuple :: (a -> b) -> (c -> d) -> (a, c) -> (b, d)
 mapTuple f g (x, y) = (f x, g y)
 

@@ -4,8 +4,16 @@ import Data.Text
 
 data Topic = Topic { topicFilename :: Text
                    , topicTitle :: Text
-                   , topicSections :: [ContentBlock]
+                   , topicSections :: [Section]
                    } deriving (Show)
+
+data Section = Section { sectionHeading :: Maybe Text
+                       , sectionData :: SectionBlock
+                       } deriving (Show)
+
+data SectionBlock = Content { sectionContent :: [ContentBlock] }
+                  | SubSections { subSections :: [Section] }
+                  deriving (Show)
 
 data ContentBlock = ParagraphBlock { paragraphText :: Paragraph }
                   | VerbatimBlock { verbatimText :: Text }
@@ -18,10 +26,6 @@ data ContentBlock = ParagraphBlock { paragraphText :: Paragraph }
                   | DescriptionListBlock { dlList :: [DescriptionListItem] }
                   | CodeBlock { codeText :: Text }
                   | SubHeadingBlock { subHeadingText :: Text }
-                  | SubSectionBlock { subSectionBlocks :: [ContentBlock] }
-                  | SectionBlock { sectionTitle :: Text
-                                 , sectionContent :: [ContentBlock]
-                                 }
                   | LinkBlock { linkRef :: Text
                               , linkText :: Text
                               }
